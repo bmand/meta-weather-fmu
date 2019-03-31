@@ -1,0 +1,34 @@
+From 90e407ae01838692bacfbcbcb83d0fb33f3ba7e7 Mon Sep 17 00:00:00 2001
+From: Sjoerd Simons <sjoerd.simons@collabora.co.uk>
+Date: Thu, 12 Apr 2018 18:09:58 +0200
+Subject: [PATCH] Kconfig: Enlarge default SYS_MALLOC_F_LEN for AM33XX
+
+Since commit 8e14ba7bd524 ("gpio: omap_gpio: Add DM_FLAG_PRE_RELOC
+flag") omap GPIO gets bound before relocation.  Unfortunately due to
+this, on at least the beaglebone black, the pre-relocation memory pool
+gets exhausted before probing the serial port. This then causes u-boot
+to panic as CONFIG_REQUIRE_SERIAL_CONSOLE is set...
+
+Resolve this by resizing the default size of the pre-relocation malloc
+pool for AM335X platforms.
+
+Signed-off-by: Sjoerd Simons <sjoerd.simons@collabora.co.uk>
+---
+ Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Kconfig b/Kconfig
+index 7accdad79d..6957097499 100644
+--- a/Kconfig
++++ b/Kconfig
+@@ -132,6 +132,7 @@ config SYS_MALLOC_F
+ config SYS_MALLOC_F_LEN
+ 	hex "Size of malloc() pool before relocation"
+ 	depends on SYS_MALLOC_F
++	default 0x1000 if AM33XX
+ 	default 0x400
+ 	help
+ 	  Before relocation, memory is very limited on many platforms. Still,
+-- 
+2.17.1
+

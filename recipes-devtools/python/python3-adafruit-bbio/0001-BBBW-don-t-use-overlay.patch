@@ -1,0 +1,124 @@
+From 3483afaeca4d15245a80a0c5dbec786b86d3b351 Mon Sep 17 00:00:00 2001
+From: Bertrand Mandrin <bertrandmandrin@gmail.com>
+Date: Sun, 10 Mar 2019 12:56:58 +0100
+Subject: [PATCH] BBBW don't use overlay
+
+---
+ source/c_pinmux.c |  7 +++++++
+ source/common.c   | 48 +++++++++++++++++++++++++++++++++++++++++++++++
+ source/common.h   |  1 +
+ 3 files changed, 56 insertions(+)
+
+diff --git a/source/c_pinmux.c b/source/c_pinmux.c
+index 6932ec6..98c0447 100644
+--- a/source/c_pinmux.c
++++ b/source/c_pinmux.c
+@@ -32,6 +32,13 @@ BBIO_err set_pin_mode(const char *key, const char *mode)
+ 	snprintf(pinmux_dir, sizeof(pinmux_dir), "ocp:%s_pinmux", pin);
+ 	snprintf(path, sizeof(path), "%s/%s/state", ocp_dir, pinmux_dir);
+ 
++	/* beaglebone blue has complete dtb file and does not need overlays */
++	if(beaglebone_bw()) {
++		fprintf(stderr, "DEBUG: Adafruit_BBIO: set_pin_mode() :: Pinmux file: %s, mode: %s", path, mode); 
++		fprintf(stderr, "DEBUG: Adafruit_BBIO: set_pin_mode(): beaglebone_bw() is TRUE; return BBIO_OK\n");
++		return BBIO_OK;
++	}
++
+ 	f = fopen(path, "w");
+ 	if (NULL == f) {
+ 		return BBIO_ACCESS;
+diff --git a/source/common.c b/source/common.c
+index 42dd5f5..8643a2a 100644
+--- a/source/common.c
++++ b/source/common.c
+@@ -631,6 +631,36 @@ int beaglebone_blue(void) {
+     return retval;
+ }
+ 
++/*
++   Check if board is a BeagleBone Black Wireless
++*/
++int beaglebone_bw(void) {
++    const char *cmd = "/bin/grep -c 'TI AM335x BeagleBone Black Wireless' /proc/device-tree/model";
++    // cache the value to avoid poor performance
++    // in functions that are called frequently like
++    // gpio_set_value() in source/event_gpio.c
++    static int initialized = 0;
++    static int retval = 0;
++    FILE *file = NULL;
++
++    //fprintf(stderr, "beaglebone_bw(): initialized=[%d] retval=[%d]\n", initialized, retval);
++    if(!initialized) {
++      initialized = 1;
++      //fprintf(stderr, "beaglebone_bw(): not initialized\n");
++      file = popen(cmd, "r");
++      if (file == NULL) {
++         fprintf(stderr, "Adafruit_BBIO: error in beaglebone_bw(): failed to run cmd=%s\n", cmd);
++         syslog(LOG_ERR, "Adafruit_BBIO: error in beaglebone_bw(): failed to run cmd=%s\n", cmd);
++         return -1;
++      }
++      if( fgetc(file) == '1' ) {
++         retval = 1;
++      }
++      pclose(file);
++    }
++
++    return retval;
++}
+ 
+ BBIO_err load_device_tree(const char *name)
+ {
+@@ -664,6 +694,12 @@ BBIO_err load_device_tree(const char *name)
+       //fprintf(stderr, "common.c: load_device_tree(): pocketbeagle(): TRUE\n");
+       return BBIO_OK;
+     }
++    
++    /* beaglebone black wireless has complete dtb file and does not need overlays */
++    if(beaglebone_bw()) {
++      //fprintf(stderr, "common.c: load_device_tree(): beaglebone_bw(): TRUE\n");
++      return BBIO_OK;
++    }
+ 
+     snprintf(slots, sizeof(slots), "%s/slots", ctrl_dir);
+ 
+@@ -727,6 +763,12 @@ int device_tree_loaded(const char *name)
+       return BBIO_OK;
+     }
+ 
++    /* beaglebone black wireless has complete dtb file and does not need overlays */
++    if(beaglebone_bw()) {
++      //fprintf(stderr, "common.c: device_tree_loaded(): beaglebone_bw(): TRUE\n");
++      return BBIO_OK;
++    }
++
+     snprintf(slots, sizeof(slots), "%s/slots", ctrl_dir);
+ 
+ 
+@@ -777,6 +819,12 @@ BBIO_err unload_device_tree(const char *name)
+       return BBIO_OK;
+     }
+ 
++    /* beaglebone black wireless has complete dtb file and does not need overlays */
++    if(beaglebone_bw()) {
++      //fprintf(stderr, "common.c: unload_device_tree(): beaglebone_bw(): TRUE\n");
++      return BBIO_OK;
++    }
++
+     snprintf(slots, sizeof(slots), "%s/slots", ctrl_dir);
+     file = fopen(slots, "r+");
+     if (!file) {
+diff --git a/source/common.h b/source/common.h
+index 7d60c1f..9d94845 100644
+--- a/source/common.h
++++ b/source/common.h
+@@ -94,6 +94,7 @@ BBIO_err get_pwm_by_key(const char *key, pwm_t **pwm);
+ int uboot_overlay_enabled(void);
+ int beaglebone_blue(void);
+ int pocketbeagle(void);
++int beaglebone_bw(void);
+ 
+ #define BBIO_LOG_OPTION LOG_CONS | LOG_PID | LOG_NDELAY
+ void initlog(int level, const char* ident, int option);
+-- 
+2.17.1
+

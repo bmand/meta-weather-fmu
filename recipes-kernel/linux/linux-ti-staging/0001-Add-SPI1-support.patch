@@ -1,0 +1,57 @@
+From f460f82be54b739564eeaacf6eaab4dc49f6df5c Mon Sep 17 00:00:00 2001
+From: Bertrand Mandrin <bertrandmandrin@gmail.com>
+Date: Thu, 7 Mar 2019 13:15:39 +0000
+Subject: [PATCH] Add SPI1 support
+
+---
+ arch/arm/boot/dts/am335x-boneblack-wireless.dts | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/arch/arm/boot/dts/am335x-boneblack-wireless.dts b/arch/arm/boot/dts/am335x-boneblack-wireless.dts
+index 83f49f6..29a2aec 100644
+--- a/arch/arm/boot/dts/am335x-boneblack-wireless.dts
++++ b/arch/arm/boot/dts/am335x-boneblack-wireless.dts
+@@ -63,6 +63,17 @@
+ 			AM33XX_IOPAD(0x930, PIN_OUTPUT_PULLUP | MUX_MODE7)	/* gmii1_rxclk.gpio3_10 LS_BUF_EN */
+ 		>;
+ 	};
++
++    spi1_pins: pinmux_spi1_pins {
++        pinctrl-single,pins = <
++            AM33XX_IOPAD(0x990, PIN_OUTPUT | MUX_MODE3) /* (A13) mcasp0_aclkx.spi1_sclk */
++            AM33XX_IOPAD(0x994, PIN_OUTPUT | MUX_MODE3) /* (B13) mcasp0_fsx.spi1_d0 */
++            AM33XX_IOPAD(0x998, PIN_INPUT | MUX_MODE3) /* (D12) mcasp0_axr0.spi1_d1 */
++            AM33XX_IOPAD(0x99c, PIN_OUTPUT_PULLDOWN | MUX_MODE3) /* (C12) mcasp0_ahclkr.spi1_cs0 */
++            AM33XX_IOPAD(0x878, PIN_INPUT | MUX_MODE7) /* (U18) gpmc_be1n.gpio1[28] */
++        >;
++    };
++
+ };
+ 
+ &mac {
+@@ -112,3 +123,22 @@
+ 		line-name = "LS_BUF_EN";
+ 	};
+ };
++
++&spi1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&spi1_pins>;
++	status = "okay";
++   ti,pindir-d0-out-d1-in;
++
++   spi1channel@0 {
++        #address-cells = <1>;
++        #size-cells = <0>;
++
++        compatible = "spidev";
++
++        reg = <0>;
++        spi-max-frequency = <16000000>;
++        spi-cpha;
++    };
++};
++
+-- 
+2.7.4
+
